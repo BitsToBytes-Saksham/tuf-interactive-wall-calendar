@@ -126,7 +126,7 @@ export default function WallCalendar() {
       if (stored) {
         const parsed = JSON.parse(stored)
         setSavedNotes(parsed)
-        const key = `${year}-${month}`
+        const key = `notes-${year}-${month}`
         if (parsed[key]) {
           setNotes(parsed[key])
         }
@@ -141,7 +141,7 @@ export default function WallCalendar() {
   // Load notes when month changes (only after mounted)
   useEffect(() => {
     if (!mounted) return
-    const key = `${currentYear}-${currentMonth}`
+    const key = `notes-${currentYear}-${currentMonth}`
     setNotes(savedNotes[key] || "")
   }, [currentMonth, currentYear, mounted, savedNotes])
 
@@ -289,7 +289,7 @@ export default function WallCalendar() {
   }, [currentMonth, isAnimating])
 
   const saveNotes = useCallback(() => {
-    const key = `${currentYear}-${currentMonth}`
+    const key = `notes-${currentYear}-${currentMonth}`
     const updated = { ...savedNotes, [key]: notes }
     setSavedNotes(updated)
     try {
@@ -492,8 +492,9 @@ export default function WallCalendar() {
                     // Rounded caps only appear at true range start/end when NOT at a row boundary
                     const bandStyle: React.CSSProperties = {
                       position: 'absolute',
-                      top: '4px',
-                      bottom: '4px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      height: '38px',
                       backgroundColor: '#dbeafe', // blue-100
                       // Left edge
                       left: atRowStart ? 0 : isFirstInBand ? '50%' : '-1px',
