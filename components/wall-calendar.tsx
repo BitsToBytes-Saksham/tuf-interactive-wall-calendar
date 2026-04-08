@@ -105,6 +105,7 @@ export default function WallCalendar() {
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null)
   const [notes, setNotes] = useState("")
   const [savedNotes, setSavedNotes] = useState<Record<string, string>>({})
+  const savedNotesRef = useRef<Record<string, string>>({})
   const [isAnimating, setIsAnimating] = useState(false)
   const [animationDirection, setAnimationDirection] = useState<"left" | "right">("right")
   const [showSaved, setShowSaved] = useState(false)
