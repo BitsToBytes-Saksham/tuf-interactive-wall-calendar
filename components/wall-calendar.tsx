@@ -490,24 +490,35 @@ export default function WallCalendar() {
                     const isPartOfPreview = previewEnd || inPreview
                     const showBand = (isPartOfRange || isPartOfPreview) && day.isCurrentMonth
                     
-                    // Determine edge rounding: flush/square at row boundaries, rounded only at true range ends
+                    // Determine edge rounding: flush/square at row boundaries (Sun/Sat), rounded only at true range ends NOT on row edges
                     const isFirstInBand = rangeStart || (dateRange.start && !dateRange.end && previewEnd && hoveredDate && hoveredDate < dateRange.start)
                     const isLastInBand = rangeEnd || previewEnd
+                    
+                    // Row boundaries (Sunday col 0, Saturday col 6) ALWAYS get flush/square edges - no border radius
+                    // Rounded caps only appear at true range start/end when NOT at a row boundary
+                    const bandStyle: React.CSSProperties = {
+                      position: 'absolute',
+                      top: '4px',
+                      bottom: '4px',
+                      backgroundColor: '#dbeafe', // blue-100
+                      // Left edge
+                      left: atRowStart ? 0 : isFirstInBand ? '50%' : '-1px',
+                      borderTopLeftRadius: atRowStart ? 0 : isFirstInBand ? '9999px' : 0,
+                      borderBottomLeftRadius: atRowStart ? 0 : isFirstInBand ? '9999px' : 0,
+                      // Right edge
+                      right: atRowEnd ? 0 : isLastInBand ? '50%' : '-1px',
+                      borderTopRightRadius: atRowEnd ? 0 : isLastInBand ? '9999px' : 0,
+                      borderBottomRightRadius: atRowEnd ? 0 : isLastInBand ? '9999px' : 0,
+                    }
 
                     return (
                       <div
                         key={index}
                         className="relative"
                       >
-                        {/* Continuous range band - square at row edges, rounded only at true range start/end */}
+                        {/* Continuous range band - square at row edges (Sun/Sat), rounded only at true range start/end */}
                         {showBand && (
-                          <div 
-                            className={`absolute inset-y-1 bg-blue-100 ${
-                              atRowStart ? 'left-0' : isFirstInBand ? 'left-1/2 rounded-l-full' : '-left-px'
-                            } ${
-                              atRowEnd ? 'right-0' : isLastInBand ? 'right-1/2 rounded-r-full' : '-right-px'
-                            }`}
-                          />
+                          <div style={bandStyle} />
                         )}
                         
                         <button
