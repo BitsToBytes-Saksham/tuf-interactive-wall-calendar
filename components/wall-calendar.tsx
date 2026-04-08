@@ -484,23 +484,28 @@ export default function WallCalendar() {
                     const atRowStart = isRowStart(index)
                     const atRowEnd = isRowEnd(index)
 
-                    // Determine if this is part of a continuous band
-                    const showBand = (inRange || inPreview) && day.isCurrentMonth
-                    const showBandStart = (rangeStart || (showBand && atRowStart)) && day.isCurrentMonth
-                    const showBandEnd = (rangeEnd || previewEnd || (showBand && atRowEnd)) && day.isCurrentMonth
+                    // Determine if this cell should show the range band
+                    // Band shows through start, middle (inRange), and end dates
+                    const isPartOfRange = rangeStart || rangeEnd || inRange
+                    const isPartOfPreview = previewEnd || inPreview
+                    const showBand = (isPartOfRange || isPartOfPreview) && day.isCurrentMonth
+                    
+                    // Determine edge rounding: flush/square at row boundaries, rounded only at true range ends
+                    const isFirstInBand = rangeStart || (dateRange.start && !dateRange.end && previewEnd && hoveredDate && hoveredDate < dateRange.start)
+                    const isLastInBand = rangeEnd || previewEnd
 
                     return (
                       <div
                         key={index}
                         className="relative"
                       >
-                        {/* Continuous range band - flush/square at row edges for visual continuity */}
+                        {/* Continuous range band - square at row edges, rounded only at true range start/end */}
                         {showBand && (
                           <div 
                             className={`absolute inset-y-1 bg-blue-100 ${
-                              atRowStart ? 'left-0' : '-left-px'
+                              atRowStart ? 'left-0' : isFirstInBand ? 'left-1/2 rounded-l-full' : '-left-px'
                             } ${
-                              atRowEnd ? 'right-0' : '-right-px'
+                              atRowEnd ? 'right-0' : isLastInBand ? 'right-1/2 rounded-r-full' : '-right-px'
                             }`}
                           />
                         )}
