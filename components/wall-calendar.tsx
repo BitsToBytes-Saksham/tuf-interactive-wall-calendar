@@ -384,9 +384,9 @@ export default function WallCalendar() {
                 ))}
               </div>
 
-              {/* Hero Image with Month Banner */}
+              {/* Hero Image with Month Banner - visible on all screen sizes */}
               <div 
-                className={`relative h-44 md:h-56 overflow-hidden transition-all duration-300 ease-in-out ${
+                className={`relative h-40 sm:h-44 md:h-56 overflow-hidden transition-all duration-300 ease-in-out ${
                   isAnimating 
                     ? animationDirection === "left" 
                       ? "-translate-x-8 opacity-0" 
@@ -397,25 +397,22 @@ export default function WallCalendar() {
                 <img
                   src={MONTH_IMAGES[currentMonth]}
                   alt={`${monthName} landscape`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover block"
                   crossOrigin="anonymous"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
                 
-                {/* Ribbon Banner with diagonal cut */}
-                <div className="absolute bottom-4 left-0 md:bottom-6">
-                  <div className="relative">
-                    {/* Main ribbon */}
-                    <div className="bg-blue-600 text-white pl-6 pr-8 py-2.5 shadow-lg">
-                      <span className="font-serif text-xl md:text-2xl font-semibold tracking-wide" suppressHydrationWarning>
-                        {mounted ? `${monthName} ${currentYear}` : ""}
-                      </span>
-                    </div>
-                    {/* Diagonal cut on right edge */}
-                    <div className="absolute right-0 top-0 h-full w-4 bg-blue-600 transform skew-x-[-12deg] origin-bottom-right" />
-                    {/* Shadow tail */}
-                    <div className="absolute -left-1 bottom-0 w-1 h-2 bg-blue-900" />
-                  </div>
+                {/* Ribbon Banner with diagonal slanted left edge */}
+                <div 
+                  className="absolute bottom-4 md:bottom-6 bg-blue-600 text-white py-2.5 pr-6 pl-8 shadow-lg"
+                  style={{ 
+                    clipPath: 'polygon(16px 0, 100% 0, 100% 100%, 0 100%)',
+                    left: 0
+                  }}
+                >
+                  <span className="font-serif text-xl md:text-2xl font-semibold tracking-wide" suppressHydrationWarning>
+                    {mounted ? `${monthName} ${currentYear}` : ""}
+                  </span>
                 </div>
 
                 {/* Season Badge */}
@@ -497,13 +494,13 @@ export default function WallCalendar() {
                         key={index}
                         className="relative"
                       >
-                        {/* Continuous range band - bleeds edge to edge */}
+                        {/* Continuous range band - flush/square at row edges for visual continuity */}
                         {showBand && (
                           <div 
                             className={`absolute inset-y-1 bg-blue-100 ${
-                              atRowStart ? 'left-0 rounded-l-full' : '-left-px'
+                              atRowStart ? 'left-0' : '-left-px'
                             } ${
-                              atRowEnd ? 'right-0 rounded-r-full' : '-right-px'
+                              atRowEnd ? 'right-0' : '-right-px'
                             }`}
                           />
                         )}
