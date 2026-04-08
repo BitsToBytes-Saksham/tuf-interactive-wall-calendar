@@ -60,7 +60,8 @@ interface DateRange {
 }
 
 export default function WallCalendar() {
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState<Date | null>(null)
+  const [today, setToday] = useState<Date | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null)
   const [notes, setNotes] = useState("")
@@ -70,9 +71,15 @@ export default function WallCalendar() {
   const [showSaved, setShowSaved] = useState(false)
   const [tooltipInfo, setTooltipInfo] = useState<{ x: number; y: number; text: string } | null>(null)
 
-  const currentMonth = currentDate.getMonth()
-  const currentYear = currentDate.getFullYear()
-  const today = new Date()
+  // Initialize dates on client only to avoid hydration mismatch
+  useEffect(() => {
+    const now = new Date()
+    setCurrentDate(now)
+    setToday(now)
+  }, [])
+
+  const currentMonth = currentDate?.getMonth() ?? 0
+  const currentYear = currentDate?.getFullYear() ?? 2026
 
   // Load notes from localStorage
   useEffect(() => {
@@ -187,7 +194,7 @@ export default function WallCalendar() {
   }, [dateRange.end])
 
   const isToday = useCallback((date: Date) => {
-    return date.toDateString() === today.toDateString()
+    return today ? date.toDateString() === today.toDateString() : false
   }, [today])
 
   const getHoliday = useCallback((date: Date) => {
@@ -234,6 +241,15 @@ export default function WallCalendar() {
   }, [])
 
   const seasonInfo = SEASON_INFO[currentMonth]
+
+  // Don't render until client-side date is initialized
+  if (!currentDate || !today) {
+    return (
+      <div className="min-h-screen bg-[#fafaf8] p-4 md:p-8 flex items-center justify-center">
+        <div className="animate-pulse text-gray-400">Loading calendar...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#fafaf8] p-4 md:p-8">
