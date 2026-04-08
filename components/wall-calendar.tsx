@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 // Indian Public Holidays for all 12 months (2026)
@@ -110,6 +110,9 @@ export default function WallCalendar() {
   const [showSaved, setShowSaved] = useState(false)
   const [tooltipInfo, setTooltipInfo] = useState<{ x: number; y: number; text: string } | null>(null)
 
+  // Use a ref to track savedNotes without triggering re-renders for notes loading
+  const savedNotesRef = useRef<Record<string, string>>({})
+
   // Single useEffect to initialize all date-dependent and localStorage values on client only
   useEffect(() => {
     const now = new Date()
@@ -126,6 +129,7 @@ export default function WallCalendar() {
       if (stored) {
         const parsed = JSON.parse(stored)
         setSavedNotes(parsed)
+        savedNotesRef.current = parsed
         const key = `${year}-${month}`
         if (parsed[key]) {
           setNotes(parsed[key])
@@ -139,11 +143,12 @@ export default function WallCalendar() {
   }, [])
 
   // Load notes when month changes (only after mounted)
+  // Use the ref to get savedNotes to avoid dependency on savedNotes state
   useEffect(() => {
     if (!mounted) return
     const key = `${currentYear}-${currentMonth}`
-    setNotes(savedNotes[key] || "")
-  }, [currentMonth, currentYear, mounted, savedNotes])
+    setNotes(savedNotesRef.current[key] || "")
+  }, [currentMonth, currentYear, mounted])
 
   // Memoized calendar days calculation - trim trailing rows of only next-month dates
   const calendarDays = useMemo(() => {
@@ -292,6 +297,7 @@ export default function WallCalendar() {
     const key = `${currentYear}-${currentMonth}`
     const updated = { ...savedNotes, [key]: notes }
     setSavedNotes(updated)
+    savedNotesRef.current = updated
     try {
       localStorage.setItem("calendar-notes", JSON.stringify(updated))
     } catch {
@@ -338,246 +344,229 @@ export default function WallCalendar() {
 
   // Always render the same JSX shell - use suppressHydrationWarning for date-dependent text
   return (
-    <div className="min-h-screen bg-[#f8f7f4] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Notes Panel */}
-          <div className="order-2 lg:order-1 w-full lg:w-[260px] lg:flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-8">
-              <h2 className="text-base font-semibold text-gray-800 mb-1">Monthly Notes</h2>
-              <p className="text-xs text-gray-500 mb-4" suppressHydrationWarning>
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6">
+        {/* Notes Panel */}
+        <div className="lg:w-72 bg-white/80 backdrop-blur rounded-2xl p-5 shadow-lg border border-white/50 h-fit">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800">Monthly Notes</h3>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full" suppressHydrationWarning>
+              {mounted ? `${monthName} ${currentYear}` : ""}
+            </span>
+          </div>
+          {dateRange.start && (
+            <div className="mb-3 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
+              {formatRange}
+            </div>
+          )}
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add your notes for this month..."
+            className="w-full h-36 p-3 border border-gray-200 rounded-lg resize-none text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+          />
+          <button
+            onClick={saveNotes}
+            className="mt-3 w-full py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg font-medium text-sm hover:from-blue-600 hover:to-indigo-600 transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+          >
+            {showSaved ? "Saved!" : "Save Notes"}
+          </button>
+        </div>
+
+        {/* Calendar */}
+        <div className="flex-1 relative">
+          {/* Spiral Binding Rings */}
+          <div className="absolute -top-2 left-0 right-0 flex justify-around px-8 z-20">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="w-6 h-6 bg-gradient-to-b from-gray-300 to-gray-400 rounded-full shadow-md border-2 border-gray-200 flex items-center justify-center">
+                <div className="w-2 h-2 bg-gray-600 rounded-full" />
+              </div>
+            ))}
+          </div>
+
+          {/* Hero Image with Month Banner - visible on all screen sizes */}
+          <div className="relative h-48 md:h-64 rounded-t-2xl overflow-hidden">
+            <img
+              src={MONTH_IMAGES[currentMonth]}
+              alt={`${monthName} landscape`}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+            
+            {/* Ribbon Banner */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <div className="relative bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500 text-white px-8 py-2 font-bold text-xl md:text-2xl tracking-wide shadow-lg" suppressHydrationWarning>
                 {mounted ? `${monthName} ${currentYear}` : ""}
-              </p>
-              
-              {dateRange.start && (
-                <div className="mb-3 px-3 py-2 bg-blue-50 rounded-lg text-sm text-blue-700 font-medium" suppressHydrationWarning>
-                  {formatRange}
-                </div>
-              )}
-              
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add your notes for this month..."
-                className="w-full h-36 p-3 border border-gray-200 rounded-lg resize-none text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-              />
-              
-              <button
-                onClick={saveNotes}
-                className="mt-3 w-full py-2.5 bg-blue-600 text-white text-sm rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors min-h-[44px]"
-              >
-                {showSaved ? "Saved!" : "Save Notes"}
-              </button>
+                <div className="absolute -left-3 top-0 bottom-0 w-3 bg-rose-600 skew-y-[45deg] origin-top-right" />
+                <div className="absolute -right-3 top-0 bottom-0 w-3 bg-rose-600 -skew-y-[45deg] origin-top-left" />
+              </div>
+            </div>
+
+            {/* Season Badge */}
+            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+              <span className="text-lg">{seasonInfo.emoji}</span>
+              <span className="text-sm font-medium text-gray-700">{seasonInfo.label}</span>
             </div>
           </div>
 
-          {/* Calendar */}
-          <div className="order-1 lg:order-2 flex-1">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              {/* Spiral Binding Rings */}
-              <div className="h-5 bg-gradient-to-b from-gray-100 to-gray-50 flex items-center justify-center gap-8 border-b border-gray-200">
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-gray-200 to-gray-400 border border-gray-300 shadow-sm"
-                  />
-                ))}
-              </div>
+          {/* Navigation */}
+          <div className="bg-white flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <button
+              onClick={() => navigateMonth("prev")}
+              className="p-2 rounded-full hover:bg-gray-200 active:bg-gray-300 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center group"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+            </button>
+            
+            <h2 className="text-lg font-bold text-gray-800" suppressHydrationWarning>
+              {mounted ? `${monthName} ${currentYear}` : ""}
+            </h2>
+            
+            <button
+              onClick={() => navigateMonth("next")}
+              className="p-2 rounded-full hover:bg-gray-200 active:bg-gray-300 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center group"
+              aria-label="Next month"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+            </button>
+          </div>
 
-              {/* Hero Image with Month Banner - visible on all screen sizes */}
-              <div 
-                className={`relative h-40 sm:h-44 md:h-56 overflow-hidden transition-all duration-300 ease-in-out ${
-                  isAnimating 
-                    ? animationDirection === "left" 
-                      ? "-translate-x-8 opacity-0" 
-                      : "translate-x-8 opacity-0"
-                    : "translate-x-0 opacity-100"
-                }`}
-              >
-                <img
-                  src={MONTH_IMAGES[currentMonth]}
-                  alt={`${monthName} landscape`}
-                  className="w-full h-full object-cover block"
-                  crossOrigin="anonymous"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-                
-                {/* Ribbon Banner */}
-                <div style={{ position: 'absolute', bottom: '16px', left: '0', clipPath: 'polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%)', backgroundColor: '#1d4ed8', padding: '10px 40px 10px 20px' }}>
-                  <span style={{ fontFamily: 'serif', fontSize: '1.75rem', fontWeight: 'bold', color: 'white' }} suppressHydrationWarning>
-                    {mounted ? `${monthName} ${currentYear}` : ""}
-                  </span>
-                </div>
-
-                {/* Season Badge */}
-                <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
-                  <span className="text-sm">{seasonInfo.emoji}</span>
-                  <span className="text-xs font-medium text-gray-700">{seasonInfo.label}</span>
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between px-4 md:px-6 py-2.5 border-b border-gray-100 bg-gray-50/50">
-                <button
-                  onClick={() => navigateMonth("prev")}
-                  className="p-2 rounded-full hover:bg-gray-200 active:bg-gray-300 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center group"
-                  aria-label="Previous month"
+          {/* Calendar Grid */}
+          <div className={`bg-white rounded-b-2xl shadow-xl overflow-hidden transition-all duration-300 ${isAnimating ? (animationDirection === "left" ? "translate-x-[-10px] opacity-50" : "translate-x-[10px] opacity-50") : ""}`}>
+            {/* Day Headers */}
+            <div className="grid grid-cols-7 bg-gradient-to-r from-slate-50 to-gray-50">
+              {DAY_NAMES.map((day, i) => (
+                <div
+                  key={day}
+                  className={`py-3 text-center text-xs font-semibold tracking-wider ${i === 0 ? "text-rose-500" : i === 6 ? "text-blue-500" : "text-gray-500"}`}
                 >
-                  <ChevronLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
-                </button>
-                
-                <span className="text-sm font-semibold text-gray-700" suppressHydrationWarning>
-                  {mounted ? `${monthName} ${currentYear}` : ""}
-                </span>
-                
-                <button
-                  onClick={() => navigateMonth("next")}
-                  className="p-2 rounded-full hover:bg-gray-200 active:bg-gray-300 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center group"
-                  aria-label="Next month"
-                >
-                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
-                </button>
-              </div>
+                  {day}
+                </div>
+              ))}
+            </div>
 
-              {/* Calendar Grid */}
-              <div className="p-3 md:p-5">
-                {/* Day Headers */}
-                <div className="grid grid-cols-7 mb-1">
-                  {DAY_NAMES.map((day, i) => (
-                    <div
-                      key={day}
-                      className={`text-center text-xs font-semibold py-2 ${
-                        i === 0 || i === 6 ? "text-blue-600" : "text-gray-500"
-                      }`}
+            {/* Date Grid */}
+            <div className="grid grid-cols-7">
+              {calendarDays.map((day, index) => {
+                const holiday = getHoliday(day.date)
+                const dayOfWeek = day.date.getDay()
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+                const isTodayDate = isToday(day.date)
+                const inRange = isInRange(day.date)
+                const rangeStart = isRangeStart(day.date)
+                const rangeEnd = isRangeEnd(day.date)
+                const inPreview = isInPreviewRange(day.date)
+                const previewEnd = isPreviewEnd(day.date)
+                const atRowStart = isRowStart(index)
+                const atRowEnd = isRowEnd(index)
+
+                // Determine if this cell should show the range band
+                // Band shows through start, middle (inRange), and end dates
+                const isPartOfRange = rangeStart || rangeEnd || inRange
+                const isPartOfPreview = previewEnd || inPreview
+                const showBand = (isPartOfRange || isPartOfPreview) && day.isCurrentMonth
+                
+                // Determine edge rounding: flush/square at row boundaries (Sun/Sat), rounded only at true range ends NOT on row edges
+                const isFirstInBand = rangeStart || (dateRange.start && !dateRange.end && previewEnd && hoveredDate && hoveredDate < dateRange.start)
+                const isLastInBand = rangeEnd || previewEnd
+                
+                // Row boundaries (Sunday col 0, Saturday col 6) ALWAYS get flush/square edges - no border radius
+                // Rounded caps only appear at true range start/end when NOT at a row boundary
+                const bandStyle: React.CSSProperties = {
+                  position: 'absolute',
+                  top: '4px',
+                  bottom: '4px',
+                  backgroundColor: '#dbeafe', // blue-100
+                  // Left edge
+                  left: atRowStart ? 0 : isFirstInBand ? '50%' : '-1px',
+                  borderTopLeftRadius: atRowStart ? 0 : isFirstInBand ? '9999px' : 0,
+                  borderBottomLeftRadius: atRowStart ? 0 : isFirstInBand ? '9999px' : 0,
+                  // Right edge
+                  right: atRowEnd ? 0 : isLastInBand ? '50%' : '-1px',
+                  borderTopRightRadius: atRowEnd ? 0 : isLastInBand ? '9999px' : 0,
+                  borderBottomRightRadius: atRowEnd ? 0 : isLastInBand ? '9999px' : 0,
+                }
+
+                return (
+                  <div key={index} className="relative">
+                    {/* Continuous range band - square at row edges (Sun/Sat), rounded only at true range start/end */}
+                    {showBand && (
+                      <div style={bandStyle} />
+                    )}
+                    
+                    <button
+                      onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
+                      onMouseEnter={() => day.isCurrentMonth && handleMouseEnter(day.date)}
+                      onMouseLeave={handleMouseLeave}
+                      disabled={!day.isCurrentMonth}
+                      className={`
+                        relative w-full aspect-square flex flex-col items-center justify-center
+                        min-h-[40px] transition-all duration-100
+                        ${!day.isCurrentMonth ? "text-gray-300 cursor-default" : "cursor-pointer"}
+                        ${day.isCurrentMonth && !rangeStart && !rangeEnd && !inRange && !inPreview ? "hover:bg-gray-100 rounded-full" : ""}
+                      `}
                     >
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Date Grid */}
-                <div 
-                  className={`grid grid-cols-7 transition-all duration-300 ease-in-out ${
-                    isAnimating 
-                      ? animationDirection === "left" 
-                        ? "-translate-x-8 opacity-0" 
-                        : "translate-x-8 opacity-0"
-                      : "translate-x-0 opacity-100"
-                  }`}
-                >
-                  {calendarDays.map((day, index) => {
-                    const holiday = getHoliday(day.date)
-                    const dayOfWeek = day.date.getDay()
-                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-                    const isTodayDate = isToday(day.date)
-                    const inRange = isInRange(day.date)
-                    const rangeStart = isRangeStart(day.date)
-                    const rangeEnd = isRangeEnd(day.date)
-                    const inPreview = isInPreviewRange(day.date)
-                    const previewEnd = isPreviewEnd(day.date)
-                    const atRowStart = isRowStart(index)
-                    const atRowEnd = isRowEnd(index)
-
-                    // Determine if this cell should show the range band
-                    // Band shows through start, middle (inRange), and end dates
-                    const isPartOfRange = rangeStart || rangeEnd || inRange
-                    const isPartOfPreview = previewEnd || inPreview
-                    const showBand = (isPartOfRange || isPartOfPreview) && day.isCurrentMonth
-                    
-                    // Determine edge rounding: flush/square at row boundaries (Sun/Sat), rounded only at true range ends NOT on row edges
-                    const isFirstInBand = rangeStart || (dateRange.start && !dateRange.end && previewEnd && hoveredDate && hoveredDate < dateRange.start)
-                    const isLastInBand = rangeEnd || previewEnd
-                    
-                    // Row boundaries (Sunday col 0, Saturday col 6) ALWAYS get flush/square edges - no border radius
-                    // Rounded caps only appear at true range start/end when NOT at a row boundary
-                    const bandStyle: React.CSSProperties = {
-                      position: 'absolute',
-                      top: '4px',
-                      bottom: '4px',
-                      backgroundColor: '#dbeafe', // blue-100
-                      // Left edge
-                      left: atRowStart ? 0 : isFirstInBand ? '50%' : '-1px',
-                      borderTopLeftRadius: atRowStart ? 0 : isFirstInBand ? '9999px' : 0,
-                      borderBottomLeftRadius: atRowStart ? 0 : isFirstInBand ? '9999px' : 0,
-                      // Right edge
-                      right: atRowEnd ? 0 : isLastInBand ? '50%' : '-1px',
-                      borderTopRightRadius: atRowEnd ? 0 : isLastInBand ? '9999px' : 0,
-                      borderBottomRightRadius: atRowEnd ? 0 : isLastInBand ? '9999px' : 0,
-                    }
-
-                    return (
-                      <div
-                        key={index}
-                        className="relative"
+                      {/* Date circle container */}
+                      <span
+                        className={`
+                          w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full
+                          text-sm md:text-base font-medium transition-all
+                          ${isTodayDate ? "bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-md" : ""}
+                          ${rangeStart || rangeEnd ? "bg-blue-500 text-white shadow-sm" : ""}
+                          ${!isTodayDate && !rangeStart && !rangeEnd && day.isCurrentMonth && isWeekend ? (dayOfWeek === 0 ? "text-rose-500" : "text-blue-500") : ""}
+                          ${!isTodayDate && !rangeStart && !rangeEnd && day.isCurrentMonth && !isWeekend ? "text-gray-700" : ""}
+                        `}
                       >
-                        {/* Continuous range band - square at row edges (Sun/Sat), rounded only at true range start/end */}
-                        {showBand && (
-                          <div style={bandStyle} />
-                        )}
-                        
-                        <button
-                          onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
-                          onMouseEnter={() => day.isCurrentMonth && handleMouseEnter(day.date)}
-                          onMouseLeave={handleMouseLeave}
-                          disabled={!day.isCurrentMonth}
-                          className={`
-                            relative w-full aspect-square flex flex-col items-center justify-center
-                            min-h-[40px] transition-all duration-100
-                            ${!day.isCurrentMonth ? "text-gray-300 cursor-default" : "cursor-pointer"}
-                            ${day.isCurrentMonth && !rangeStart && !rangeEnd && !inRange && !inPreview ? "hover:bg-gray-100 rounded-full" : ""}
-                          `}
-                        >
-                          {/* Date circle container */}
-                          <span
-                            className={`
-                              w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-sm font-medium rounded-full
-                              transition-all duration-100
-                              ${rangeStart || rangeEnd ? "bg-blue-600 text-white" : ""}
-                              ${previewEnd && !rangeStart ? "bg-blue-400 text-white" : ""}
-                              ${isTodayDate && !rangeStart && !rangeEnd ? "ring-2 ring-blue-600" : ""}
-                              ${day.isCurrentMonth && isWeekend && !rangeStart && !rangeEnd && !previewEnd ? "text-blue-600" : ""}
-                              ${day.isCurrentMonth && !isWeekend && !rangeStart && !rangeEnd && !previewEnd ? "text-gray-800" : ""}
-                              ${!day.isCurrentMonth ? "text-gray-300" : ""}
-                            `}
-                          >
-                            {day.date.getDate()}
-                          </span>
-                          
-                          {/* Holiday indicator */}
-                          {holiday && day.isCurrentMonth && (
-                            <span
-                              className="absolute bottom-0.5 w-1.5 h-1.5 rounded-full bg-red-500 cursor-help"
-                              onMouseEnter={(e) => {
-                                e.stopPropagation()
-                                handleHolidayHover(e, holiday)
-                              }}
-                              onMouseLeave={(e) => {
-                                e.stopPropagation()
-                                handleHolidayLeave()
-                              }}
-                            />
-                          )}
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+                        {day.date.getDate()}
+                      </span>
+                      
+                      {/* Holiday indicator */}
+                      {holiday && day.isCurrentMonth && (
+                        <span
+                          className="absolute bottom-1 w-1.5 h-1.5 bg-orange-400 rounded-full"
+                          onMouseEnter={(e) => {
+                            e.stopPropagation()
+                            handleHolidayHover(e, holiday)
+                          }}
+                          onMouseLeave={handleHolidayLeave}
+                        />
+                      )}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Tooltip */}
+          {tooltipInfo && (
+            <div
+              className="fixed z-50 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
+              style={{ left: tooltipInfo.x, top: tooltipInfo.y }}
+            >
+              {tooltipInfo.text}
+              <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-full border-4 border-transparent border-t-gray-900" />
+            </div>
+          )}
+
+          {/* Month Legend */}
+          <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full" />
+              <span className="text-gray-600">Today</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 bg-orange-400 rounded-full" />
+              <span className="text-gray-600">Holiday</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 h-3 bg-blue-100 rounded-full" />
+              <span className="text-gray-600">Selected Range</span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Holiday Tooltip */}
-      {tooltipInfo && (
-        <div
-          className="fixed z-50 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-md shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full whitespace-nowrap"
-          style={{ left: tooltipInfo.x, top: tooltipInfo.y }}
-        >
-          {tooltipInfo.text}
-          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
-        </div>
-      )}
     </div>
   )
 }
