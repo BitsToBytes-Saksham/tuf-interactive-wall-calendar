@@ -402,15 +402,9 @@ export default function WallCalendar() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
                 
-                {/* Ribbon Banner with diagonal slanted left edge */}
-                <div 
-                  className="absolute bottom-4 md:bottom-6 bg-blue-600 text-white py-2.5 pr-6 pl-8 shadow-lg"
-                  style={{ 
-                    clipPath: 'polygon(20px 0%, 100% 0%, 100% 100%, 0% 100%)',
-                    left: 0
-                  }}
-                >
-                  <span className="font-serif text-xl md:text-2xl font-semibold tracking-wide" suppressHydrationWarning>
+                {/* Ribbon Banner */}
+                <div style={{ position: 'absolute', bottom: '16px', left: '0', clipPath: 'polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%)', backgroundColor: '#1d4ed8', padding: '10px 40px 10px 20px' }}>
+                  <span style={{ fontFamily: 'serif', fontSize: '1.75rem', fontWeight: 'bold', color: 'white' }} suppressHydrationWarning>
                     {mounted ? `${monthName} ${currentYear}` : ""}
                   </span>
                 </div>
