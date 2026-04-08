@@ -406,7 +406,7 @@ export default function WallCalendar() {
                 <div 
                   className="absolute bottom-4 md:bottom-6 bg-blue-600 text-white py-2.5 pr-6 pl-8 shadow-lg"
                   style={{ 
-                    clipPath: 'polygon(16px 0, 100% 0, 100% 100%, 0 100%)',
+                    clipPath: 'polygon(20px 0%, 100% 0%, 100% 100%, 0% 100%)',
                     left: 0
                   }}
                 >
